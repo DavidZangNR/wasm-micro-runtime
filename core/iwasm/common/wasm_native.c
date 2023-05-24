@@ -30,6 +30,13 @@ uint32
 get_spectest_export_apis(NativeSymbol **p_libc_builtin_apis);
 #endif
 
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+
+uint32
+get_gnfd_builtin_export_apis(NativeSymbol **p_libc_builtin_apis);
+
+#endif
+
 uint32
 get_libc_wasi_export_apis(NativeSymbol **p_libc_wasi_apis);
 
@@ -398,6 +405,7 @@ bool
 wasm_native_init()
 {
 #if WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     \
+    || WASM_ENABLE_GNFD_BUILTIN != 0                                \
     || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      \
     || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        \
     || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 \
@@ -411,6 +419,12 @@ wasm_native_init()
     if (!wasm_native_register_natives("env", native_symbols, n_native_symbols))
         goto fail;
 #endif /* WASM_ENABLE_LIBC_BUILTIN */
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+    n_native_symbols = get_gnfd_builtin_export_apis(&native_symbols);
+    if (!wasm_native_register_natives("env", native_symbols, n_native_symbols))
+        goto fail;
+#endif
 
 #if WASM_ENABLE_SPEC_TEST
     n_native_symbols = get_spectest_export_apis(&native_symbols);
@@ -492,6 +506,7 @@ wasm_native_init()
 
     return true;
 #if WASM_ENABLE_SPEC_TEST != 0 || WASM_ENABLE_LIBC_BUILTIN != 0     \
+    || WASM_ENABLE_GNFD_BUILTIN                                     \
     || WASM_ENABLE_BASE_LIB != 0 || WASM_ENABLE_LIBC_EMCC != 0      \
     || WASM_ENABLE_LIB_RATS != 0 || WASM_ENABLE_WASI_NN != 0        \
     || WASM_ENABLE_APP_FRAMEWORK != 0 || WASM_ENABLE_LIBC_WASI != 0 \

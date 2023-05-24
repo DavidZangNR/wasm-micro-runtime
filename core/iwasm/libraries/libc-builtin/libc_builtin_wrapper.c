@@ -1052,6 +1052,88 @@ static NativeSymbol native_symbols_spectest[] = {
 };
 #endif
 
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+
+#include <stdio.h>
+static int
+open_wrapper(wasm_exec_env_t exec_env, const char* fname, int flag, _va_list va_args)
+{
+    int ret = 0;
+    
+    int stflag = O_RDWR | O_CREAT | O_TRUNC;
+    
+    wasm_module_inst_t module_inst = get_module_inst(exec_env);
+        /* format has been checked by runtime */
+    if (!validate_native_addr(va_args, sizeof(int32)))
+        return 0;
+
+    int mode;
+    mode = _va_arg(va_args, int32);
+    printf("gnfd -- mode from va_args is %d\n", mode);
+    ret = open(fname, flag, mode);
+    if (ret == -1) {
+      perror("fail to open\n");
+      return ret;
+    }
+    printf("gnfd -- open file: %s, fd: %d, flag: 0x%x, stflag: 0x%x, mode: %d\n", fname, ret, flag, stflag, mode); 
+    return ret;
+}
+
+static int
+close_wrapper(wasm_exec_env_t exec_env, int fd)
+{
+    int ret = 0;
+    printf("gnfd -- close file (fd): %d\n", fd); 
+    ret = close(fd);
+    return ret;
+}
+
+static int
+read_wrapper(wasm_exec_env_t exec_env, int fd, char* buffer, int size)
+{
+    int ret = 0;
+    
+    wasm_module_inst_t module_inst = get_module_inst(exec_env);
+    if (!validate_native_addr(buffer, sizeof(uint32)))
+        return (uint32)-1;
+
+    ret = read(fd, buffer, size);
+
+    printf("gnfd -- read file (fd): %d, ret %d\n",fd, ret); 
+    return ret;
+
+}
+
+static int
+write_wrapper(wasm_exec_env_t exec_env, int fd, char* buffer, int size)
+{
+    int ret = 0;
+    
+    wasm_module_inst_t module_inst = get_module_inst(exec_env);
+    if (!validate_native_addr(buffer, size))
+        return (uint32)-1;
+
+    for (int i = 0; i < size; i++) {
+      printf("buffer[%d] = %c", i, buffer[i]);
+    }
+    printf("\n");
+    ret = write(fd, buffer, size);
+    if (ret < 0) {
+       perror("fail to write!\n");
+    }
+    printf("gnfd -- write file (fd): %d, ret %d\n",fd, ret); 
+    return ret;
+
+}
+
+static NativeSymbol native_symbols_gnfd_builtin[] = {
+    REG_NATIVE_FUNC(open, "($i*)i"),
+    REG_NATIVE_FUNC(close, "(i)i"),
+    REG_NATIVE_FUNC(read, "(i*i)i"),
+    REG_NATIVE_FUNC(write, "(i*i)i")
+};
+#endif
+
 uint32
 get_libc_builtin_export_apis(NativeSymbol **p_libc_builtin_apis)
 {
@@ -1065,6 +1147,16 @@ get_spectest_export_apis(NativeSymbol **p_libc_builtin_apis)
 {
     *p_libc_builtin_apis = native_symbols_spectest;
     return sizeof(native_symbols_spectest) / sizeof(NativeSymbol);
+}
+#endif
+
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0 
+uint32
+get_gnfd_builtin_export_apis(NativeSymbol **p_libc_builtin_apis)
+{
+    *p_libc_builtin_apis = native_symbols_gnfd_builtin;
+    return sizeof(native_symbols_gnfd_builtin) / sizeof(NativeSymbol); 
 }
 #endif
 

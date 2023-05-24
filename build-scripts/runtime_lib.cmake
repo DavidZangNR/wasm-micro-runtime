@@ -89,6 +89,10 @@ if (WAMR_BUILD_LIBC_BUILTIN EQUAL 1)
     include (${IWASM_DIR}/libraries/libc-builtin/libc_builtin.cmake)
 endif ()
 
+if (WAMR_BUILD_GNFD_BUILTIN EQUAL 1)
+    add_definitions (-DWASM_ENABLE_GNFD_BUILTIN=1)
+endif ()
+
 if (WAMR_BUILD_LIBC_UVWASI EQUAL 1)
     include (${IWASM_DIR}/libraries/libc-uvwasi/libc_uvwasi.cmake)
 elseif (WAMR_BUILD_LIBC_WASI EQUAL 1)
