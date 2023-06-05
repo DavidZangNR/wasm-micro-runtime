@@ -245,6 +245,11 @@ typedef struct WASMModuleInstanceExtra {
 #if WASM_ENABLE_WASI_NN != 0
     WASINNContext *wasi_nn_ctx;
 #endif
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+    unsigned long long max_gas;
+    unsigned long long available_gas;
+#endif
 } WASMModuleInstanceExtra;
 
 struct AOTFuncPerfProfInfo;
@@ -399,11 +404,18 @@ wasm_load_from_sections(WASMSection *section_list, char *error_buf,
 void
 wasm_unload(WASMModule *module);
 
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+WASMModuleInstance *
+wasm_instantiate(WASMModule *module, bool is_sub_inst,
+                 WASMExecEnv *exec_env_main, uint32 stack_size,
+                 uint32 heap_size, char *error_buf, uint32 error_buf_size,
+                 unsigned long long max_gas);
+#else 
 WASMModuleInstance *
 wasm_instantiate(WASMModule *module, bool is_sub_inst,
                  WASMExecEnv *exec_env_main, uint32 stack_size,
                  uint32 heap_size, char *error_buf, uint32 error_buf_size);
-
+#endif // gnfd 
 void
 wasm_dump_perf_profiling(const WASMModuleInstance *module_inst);
 

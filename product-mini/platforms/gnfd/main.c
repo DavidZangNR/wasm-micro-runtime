@@ -90,10 +90,58 @@ print_help()
     printf("  -g=ip:port               Set the debug sever address, default is debug disabled\n");
     printf("                             if port is 0, then a random port will be used\n");
 #endif
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+    printf("  --max-gas=n              Set maximum gas, default is 0\n");
+#endif 
     printf("  --version                Show version information\n");
     return 1;
 }
 /* clang-format on */
+
+static void
+write_buffer_to_file(char* buf, const char* fname) {
+    int flag = O_RDWR | O_CREAT | O_TRUNC;
+    int mode = 0644;
+    int outputFd = open(fname, flag, mode);
+    if (outputFd == -1) {
+        printf("Failed to open the file: %s\n", fname);
+    }
+    if (write(outputFd, buf, strlen(buf)) != strlen(buf)) {
+        printf("Failed to write the complete result to the json file: %s\n", fname);
+    }
+    if (close(outputFd) == -1) {
+        printf("Failed to close the output file: %s\n", fname);
+    }
+}
+
+static void write_execute_report(unsigned long long gas_used, const char* errorMsg) {
+    char* buf[1024];
+    snprintf(buf, sizeof(buf), "{\n\"gasUsed\" : %llu, \"resultMsg\" : \"%s\"\n}", gas_used, errorMsg);
+    
+    // write to report.json.  
+    write_buffer_to_file(buf, "./report.json");
+
+}
+
+static void
+generate_execute_report(wasm_module_inst_t module_inst)
+{
+    unsigned long long max_gas,available_gas;
+    
+    wasm_runtime_get_gasUsage(module_inst, &max_gas, &available_gas);
+    
+    const char* exception = wasm_runtime_get_exception(module_inst);
+    if (exception == NULL) {
+        exception = "Success";
+    }
+    
+    
+    unsigned long long gas_used = max_gas - available_gas;
+    write_execute_report(gas_used, exception);
+    return;
+}
+
+
 
 static const void *
 app_instance_main(wasm_module_inst_t module_inst)
@@ -101,8 +149,13 @@ app_instance_main(wasm_module_inst_t module_inst)
     const char *exception;
 
     wasm_application_execute_main(module_inst, app_argc, app_argv);
+    
+    generate_execute_report(module_inst);
+    
     if ((exception = wasm_runtime_get_exception(module_inst)))
         printf("%s\n", exception);
+
+
     return exception;
 }
 
@@ -399,6 +452,10 @@ main(int argc, char *argv[])
     int instance_port = 0;
 #endif
 
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+    unsigned long long max_gas = 0;
+#endif
+
     /* Process options. */
     for (argc--, argv++; argc > 0 && argv[0][0] == '-'; argc--, argv++) {
         if (!strcmp(argv[0], "-f") || !strcmp(argv[0], "--function")) {
@@ -433,6 +490,16 @@ main(int argc, char *argv[])
         else if (!strncmp(argv[0], "-v=", 3)) {
             log_verbose_level = atoi(argv[0] + 3);
             if (log_verbose_level < 0 || log_verbose_level > 5)
+                return print_help();
+        }
+#endif
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+        else if ((!strncmp(argv[0], "--max-gas=", 10)) || (!strncmp(argv[0], "--max-Gas=", 10))) {
+            if (argv[0][10] == '\0')
+                return print_help();
+            char* ptr; // point to following the number.
+            max_gas = strtoull(argv[0]+10, &ptr, 10);
+            if (*ptr != '\0')
                 return print_help();
         }
 #endif
@@ -701,6 +768,17 @@ main(int argc, char *argv[])
                                          ns_lookup_pool_size);
 #endif
 
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+    /* instantiate the module */
+    if (!(wasm_module_inst =
+              wasm_runtime_instantiate(wasm_module, stack_size, heap_size,
+                                       error_buf, sizeof(error_buf), max_gas))) {
+        printf("%s\n", error_buf);
+        // TODO: give exact gas consumption!
+        write_execute_report(0, error_buf); 
+        goto fail3;
+    }
+#else
     /* instantiate the module */
     if (!(wasm_module_inst =
               wasm_runtime_instantiate(wasm_module, stack_size, heap_size,
@@ -708,6 +786,8 @@ main(int argc, char *argv[])
         printf("%s\n", error_buf);
         goto fail3;
     }
+
+#endif
 
 #if WASM_ENABLE_DEBUG_INTERP != 0
     if (ip_addr != NULL) {

@@ -4840,9 +4840,9 @@ wasm_instance_new_with_args(wasm_store_t *store, const wasm_module_t *module,
     /*
      * will do the linking result check at the end of wasm_runtime_instantiate
      */
-
+    // TODO - fix me! don't use fake max_gas here as user might write program to use wasi_c_api. 
     instance->inst_comm_rt = wasm_runtime_instantiate(
-        *module, stack_size, heap_size, sub_error_buf, sizeof(sub_error_buf));
+        *module, stack_size, heap_size, sub_error_buf, sizeof(sub_error_buf), (uint64_t)(-1));
     if (!instance->inst_comm_rt) {
         goto failed;
     }

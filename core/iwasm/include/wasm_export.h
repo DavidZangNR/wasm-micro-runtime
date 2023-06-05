@@ -482,11 +482,18 @@ wasm_runtime_set_wasi_ns_lookup_pool(wasm_module_t module, const char *ns_lookup
  *
  * @return return the instantiated WASM module instance, NULL if failed
  */
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+WASM_RUNTIME_API_EXTERN wasm_module_inst_t
+wasm_runtime_instantiate(const wasm_module_t module,
+                         uint32_t default_stack_size, uint32_t host_managed_heap_size,
+                         char *error_buf, uint32_t error_buf_size, unsigned long long max_gas);
+#else 
 WASM_RUNTIME_API_EXTERN wasm_module_inst_t
 wasm_runtime_instantiate(const wasm_module_t module,
                          uint32_t default_stack_size, uint32_t host_managed_heap_size,
                          char *error_buf, uint32_t error_buf_size);
-
+#endif
 /**
  * Set the running mode of a WASM module instance, override the
  * default running mode of the runtime. Note that it only makes sense when
@@ -861,6 +868,14 @@ wasm_application_execute_main(wasm_module_inst_t module_inst,
 WASM_RUNTIME_API_EXTERN bool
 wasm_application_execute_func(wasm_module_inst_t module_inst,
                               const char *name, int32_t argc, char *argv[]);
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+WASM_RUNTIME_API_EXTERN void
+wasm_runtime_get_gasUsage(wasm_module_inst_t module_inst,
+                          unsigned long long *max_gas, unsigned long long *available_gas);
+#endif 
+
+
 /**
  * Get exception info of the WASM module instance.
  *

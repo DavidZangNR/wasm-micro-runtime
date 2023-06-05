@@ -1060,8 +1060,6 @@ open_wrapper(wasm_exec_env_t exec_env, const char* fname, int flag, _va_list va_
 {
     int ret = 0;
     
-    int stflag = O_RDWR | O_CREAT | O_TRUNC;
-    
     wasm_module_inst_t module_inst = get_module_inst(exec_env);
         /* format has been checked by runtime */
     if (!validate_native_addr(va_args, sizeof(int32)))
@@ -1069,13 +1067,12 @@ open_wrapper(wasm_exec_env_t exec_env, const char* fname, int flag, _va_list va_
 
     int mode;
     mode = _va_arg(va_args, int32);
-    printf("gnfd -- mode from va_args is %d\n", mode);
     ret = open(fname, flag, mode);
     if (ret == -1) {
       perror("fail to open\n");
       return ret;
     }
-    printf("gnfd -- open file: %s, fd: %d, flag: 0x%x, stflag: 0x%x, mode: %d\n", fname, ret, flag, stflag, mode); 
+    printf("gnfd -- open file: %s, fd: %d, flag: 0x%x, mode: %d\n", fname, ret, flag, mode); 
     return ret;
 }
 
@@ -1112,11 +1109,12 @@ write_wrapper(wasm_exec_env_t exec_env, int fd, char* buffer, int size)
     wasm_module_inst_t module_inst = get_module_inst(exec_env);
     if (!validate_native_addr(buffer, size))
         return (uint32)-1;
-
+/*
     for (int i = 0; i < size; i++) {
       printf("buffer[%d] = %c", i, buffer[i]);
     }
     printf("\n");
+    */
     ret = write(fd, buffer, size);
     if (ret < 0) {
        perror("fail to write!\n");

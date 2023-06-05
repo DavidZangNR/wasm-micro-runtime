@@ -495,6 +495,24 @@ wasm_runtime_load_from_sections(WASMSection *section_list, bool is_aot,
 WASM_RUNTIME_API_EXTERN void
 wasm_runtime_unload(WASMModuleCommon *module);
 
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+/* Internal API */
+WASMModuleInstanceCommon *
+wasm_runtime_instantiate_internal(WASMModuleCommon *module, bool is_sub_inst,
+                                  WASMExecEnv *exec_env_main, uint32 stack_size,
+                                  uint32 heap_size, char *error_buf,
+                                  uint32 error_buf_size, unsigned long long max_gas);
+
+
+/* See wasm_export.h for description */
+WASM_RUNTIME_API_EXTERN WASMModuleInstanceCommon *
+wasm_runtime_instantiate(WASMModuleCommon *module, uint32 default_stack_size,
+                         uint32 host_managed_heap_size, char *error_buf,
+                         uint32 error_buf_size, unsigned long long max_gas);
+
+
+#else 
+
 /* Internal API */
 WASMModuleInstanceCommon *
 wasm_runtime_instantiate_internal(WASMModuleCommon *module, bool is_sub_inst,
@@ -502,16 +520,17 @@ wasm_runtime_instantiate_internal(WASMModuleCommon *module, bool is_sub_inst,
                                   uint32 heap_size, char *error_buf,
                                   uint32 error_buf_size);
 
-/* Internal API */
-void
-wasm_runtime_deinstantiate_internal(WASMModuleInstanceCommon *module_inst,
-                                    bool is_sub_inst);
-
 /* See wasm_export.h for description */
 WASM_RUNTIME_API_EXTERN WASMModuleInstanceCommon *
 wasm_runtime_instantiate(WASMModuleCommon *module, uint32 default_stack_size,
                          uint32 host_managed_heap_size, char *error_buf,
                          uint32 error_buf_size);
+#endif
+
+/* Internal API */
+void
+wasm_runtime_deinstantiate_internal(WASMModuleInstanceCommon *module_inst,
+                                    bool is_sub_inst);
 
 /* See wasm_export.h for description */
 WASM_RUNTIME_API_EXTERN bool
@@ -653,6 +672,12 @@ wasm_application_execute_func(WASMModuleInstanceCommon *module_inst,
 WASM_RUNTIME_API_EXTERN void
 wasm_runtime_set_exception(WASMModuleInstanceCommon *module,
                            const char *exception);
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+WASM_RUNTIME_API_EXTERN void
+wasm_runtime_get_gasUsage(WASMModuleInstanceCommon *module,
+                          unsigned long long *max_gas, unsigned long long *available_gas);
+#endif 
 
 /* See wasm_export.h for description */
 WASM_RUNTIME_API_EXTERN const char *

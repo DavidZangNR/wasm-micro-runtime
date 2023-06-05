@@ -231,7 +231,6 @@ wasm_application_execute_main(WASMModuleInstanceCommon *module_inst, int32 argc,
             wasm_runtime_dump_call_stack(exec_env);
     }
 #endif
-
     return ret;
 }
 

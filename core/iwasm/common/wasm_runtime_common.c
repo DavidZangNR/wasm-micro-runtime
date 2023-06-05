@@ -1194,6 +1194,42 @@ wasm_runtime_unload(WASMModuleCommon *module)
 #endif
 }
 
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+WASMModuleInstanceCommon *
+wasm_runtime_instantiate_internal(WASMModuleCommon *module, bool is_sub_inst,
+                                  WASMExecEnv *exec_env_main, uint32 stack_size,
+                                  uint32 heap_size, char *error_buf,
+                                  uint32 error_buf_size, unsigned long long max_gas)
+{
+#if WASM_ENABLE_INTERP != 0
+    if (module->module_type == Wasm_Module_Bytecode)
+        return (WASMModuleInstanceCommon *)wasm_instantiate(
+            (WASMModule *)module, is_sub_inst, exec_env_main, stack_size,
+            heap_size, error_buf, error_buf_size, max_gas);
+#endif
+#if WASM_ENABLE_AOT != 0
+    // TODO: add gnfd support
+    if (module->module_type == Wasm_Module_AoT)
+        return (WASMModuleInstanceCommon *)aot_instantiate(
+            (AOTModule *)module, is_sub_inst, exec_env_main, stack_size,
+            heap_size, error_buf, error_buf_size);
+#endif
+    set_error_buf(error_buf, error_buf_size,
+                  "Instantiate module failed, invalid module type");
+    return NULL;
+}
+
+WASMModuleInstanceCommon *
+wasm_runtime_instantiate(WASMModuleCommon *module, uint32 stack_size,
+                         uint32 heap_size, char *error_buf,
+                         uint32 error_buf_size, unsigned long long max_gas)
+{
+    return wasm_runtime_instantiate_internal(
+        module, false, NULL, stack_size, heap_size, error_buf, error_buf_size, max_gas);
+}
+
+#else
+
 WASMModuleInstanceCommon *
 wasm_runtime_instantiate_internal(WASMModuleCommon *module, bool is_sub_inst,
                                   WASMExecEnv *exec_env_main, uint32 stack_size,
@@ -1217,6 +1253,7 @@ wasm_runtime_instantiate_internal(WASMModuleCommon *module, bool is_sub_inst,
     return NULL;
 }
 
+  
 WASMModuleInstanceCommon *
 wasm_runtime_instantiate(WASMModuleCommon *module, uint32 stack_size,
                          uint32 heap_size, char *error_buf,
@@ -1225,6 +1262,7 @@ wasm_runtime_instantiate(WASMModuleCommon *module, uint32 stack_size,
     return wasm_runtime_instantiate_internal(
         module, false, NULL, stack_size, heap_size, error_buf, error_buf_size);
 }
+#endif 
 
 void
 wasm_runtime_deinstantiate_internal(WASMModuleInstanceCommon *module_inst,
@@ -2419,6 +2457,20 @@ wasm_runtime_set_exception(WASMModuleInstanceCommon *module_inst_comm,
               || module_inst_comm->module_type == Wasm_Module_AoT);
     wasm_set_exception(module_inst, exception);
 }
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+void
+wasm_runtime_get_gasUsage(WASMModuleInstanceCommon *module_inst_comm,
+                          unsigned long long *max_gas, unsigned long long *available_gas) {
+    WASMModuleInstance *module_inst = (WASMModuleInstance *)module_inst_comm;
+
+    bh_assert(module_inst_comm->module_type == Wasm_Module_Bytecode);
+    
+    *max_gas = module_inst->e->max_gas;
+    *available_gas = module_inst->e->available_gas;
+}
+#endif
+
 
 const char *
 wasm_runtime_get_exception(WASMModuleInstanceCommon *module_inst_comm)

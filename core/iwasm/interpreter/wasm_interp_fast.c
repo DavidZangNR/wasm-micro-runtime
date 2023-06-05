@@ -3918,6 +3918,19 @@ wasm_interp_get_handle_table()
 }
 #endif
 
+
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+static void reduce_gas(WASMModuleInstance *module_inst, unsigned long long gas) {
+    if (module_inst->e->available_gas < gas) {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "GreenfieldVM: OutOfGas, need %llu but has %llu left.\n", gas, module_inst->e->available_gas);
+        wasm_set_exception(module_inst, buf); 
+    } else {
+        module_inst->e->available_gas -= gas;
+    }
+}
+#endif
+
 void
 wasm_interp_call_wasm(WASMModuleInstance *module_inst, WASMExecEnv *exec_env,
                       WASMFunctionInstance *function, uint32 argc,
@@ -3985,6 +3998,9 @@ wasm_interp_call_wasm(WASMModuleInstance *module_inst, WASMExecEnv *exec_env,
             LOG_DEBUG("it is a function of a sub module");
             wasm_interp_call_func_import(module_inst, exec_env, function,
                                          frame);
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+            reduce_gas(module_inst, 500); 
+#endif
         }
         else
 #endif
@@ -3992,10 +4008,16 @@ wasm_interp_call_wasm(WASMModuleInstance *module_inst, WASMExecEnv *exec_env,
             LOG_DEBUG("it is an native function");
             wasm_interp_call_func_native(module_inst, exec_env, function,
                                          frame);
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+            reduce_gas(module_inst, 1000);
+#endif
         }
     }
     else {
         wasm_interp_call_func_bytecode(module_inst, exec_env, function, frame);
+#if WASM_ENABLE_GNFD_BUILTIN != 0
+        reduce_gas(module_inst, 1134);
+#endif
     }
 
     /* Output the return value to the caller */
