@@ -119,7 +119,7 @@ static void write_execute_report(unsigned long long gas_used, const char* errorM
     snprintf(buf, sizeof(buf), "{\n\"gasUsed\" : %llu, \"resultMsg\" : \"%s\"\n}", gas_used, errorMsg);
     
     // write to report.json.  
-    write_buffer_to_file(buf, "./report.json");
+    write_buffer_to_file(buf, "./output/report.json");
 
 }
 
